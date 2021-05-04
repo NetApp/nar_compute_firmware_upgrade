@@ -1,0 +1,105 @@
+---
+- name: Run Inventory installations API
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/inventory/1/installations"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: response_get_inventory
+
+- name: Set installation id
+  set_fact:
+    installation_id: "{{ response_get_inventory.content.installations[0].id }}"
+
+- name: Run vcenter controllers API
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/vcenter/compute/controllers"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: response_vcenter_controllers
+
+- set_fact:
+    controller_id: ""
+
+- name: Parse and set controller id
+  set_fact:
+    controller_id: "{% if item.ipAddress == vcenter_ip %}{{ item.id }}{% endif %}"
+  when: controller_id == ""
+  loop: "{{ response_vcenter_controllers.content }}"
+
+- name: Display controller id
+  debug:
+    msg: "Controller ID: {{ controller_id }}"
+
+- name: Run vcenter clusters API
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/vcenter/compute/{{ controller_id }}/clusters/{{ cluster_id }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: response_get_hosts
+
+- name: Set host list
+  set_fact:
+    host_list: "{{ response_get_hosts.content.hosts }}"
+
+- name: Display host ips
+  debug:
+    msg: "Host IPs: {{ host_list }}"
+
+- name: Run mnode compute nodes API
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/mnode/assets/{{ installation_id }}/compute-nodes?ip={{ item }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: response_get_hw_tags
+  loop: "{{ host_list }}"
+
+- set_fact:
+    hw_tag_list: []
+
+- name: Parse and set hardware tags
+  set_fact:
+    hw_tag_list: "{{ hw_tag_list + [item.content[0].hardware_tag] }}"
+  when: item.content
+  loop: "{{ response_get_hw_tags['results']  }}"
+
+- name: Ensure we have hardware tags
+  fail:
+    msg: >
+      Please ensure that the hardware_tag is updated to be able to continue with upgrade.
+      Please refer hardware service API to make sure the hardware_tag is updated:
+      PUT /nodes/{hardware_id}
+      Update hardware_tag for a given hardware host installation ID.
+  when: hw_tag_list | length == 0
+
+- name: Run mnode hardware nodes API
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/mnode/assets/{{ installation_id }}/hardware-nodes?hardwareTag={{ item }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: hardware_nodes_response
+  loop: "{{ hw_tag_list }}"
+
+- set_fact:
+    hardware_ids: []
+    bmc_ip_list: []
+
+- name: Parse and set hardware ids and bmc ips
+  set_fact:
+    hardware_ids: "{{ hardware_ids + [item.content[0].id] }}"
+    bmc_ip_list: "{{ bmc_ip_list + [item.content[0].ip] }}"
+  when: item.content
+  loop: "{{ hardware_nodes_response['results'] }}"
+
+- name: Collect node ids for health-check
+  include_tasks: collect_cluster_and_node_ids.yml
+  when: bmc_ip_list is defined and bmc_ip_list | length > 0

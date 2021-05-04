@@ -1,0 +1,22 @@
+---
+- name: Run vcenter nodes API
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/vcenter/1/compute/{{ controller_id }}/nodes"
+    method: GET
+    verify: "{{ sf_validate_certs | default(False) | bool }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+  register: nodes
+  failed_when: nodes.status != 200 and nodes.content | length == 0
+
+- set_fact:
+    node_ids: []
+
+- name: Collect node ids based on bmc ips
+  set_fact:
+    node_ids: "{{ node_ids + [ compute_node.id ] }}"
+  when: compute_node.bmcIp in bmc_ip_list
+  loop: "{{ nodes.content.result }}"
+  loop_control:
+    loop_var: compute_node

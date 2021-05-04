@@ -1,0 +1,78 @@
+---
+# Run task monitor service API to get the cluster health-check status
+- name: Cluster health-check status with Task monitoring service
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/task-monitor/1/tasks/{{ taskId }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: task_monitor_response
+  until:
+    - task_monitor_response.content.percentComplete == 100
+    - task_monitor_response.content.state in ["completed", "failed", "canceled", "timedOut"]
+  retries: "{{ cluster_hc_retries }}"
+  delay: "{{ cluster_hc_intervals }}"
+  failed_when: task_monitor_response.status != 200 and task_monitor_response.content | length == 0
+  ignore_errors: true
+
+- debug:
+    msg: >
+      "Final response of task monitor for running node upgrade:
+      {{ task_monitor_response.content | to_nice_json}}"
+  when: task_monitor_response.content is defined
+
+# Run task to collect cluster health check final output
+- name: Collect cluster health-check log
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "{{ resourceLink }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: cluster_hc_output
+  ignore_errors: true
+
+- name: Validate health-check API status
+  fail:
+    msg: >
+      "Cluster: {{ cluster_id }} health-check status is {{ cluster_hc_output.state }}.
+      Please check the api response:
+      {{ cluster_hc_output.content | to_nice_json }}"
+  when: cluster_hc_output.status != 200
+  ignore_errors: true
+
+- set_fact:
+    failed_health_checks: []
+
+- name: Ensure we check cluster level health-check status
+  set_fact:
+    failed_health_checks: "{{ failed_health_checks + [ cluster_hcr ] }}"
+  when: cluster_hcr.passed != True and cluster_hcr.severityLevel == "CRITICAL"
+  loop: "{{ cluster_hc_output.content.result.result.cluster.result }}"
+  loop_control:
+    loop_var: cluster_hcr
+  ignore_errors: true
+
+- name: Ensure we check nodes level health-check status
+  set_fact:
+    failed_health_checks: "{{ failed_health_checks +  [ node_hcr.1 ] }}"
+  when: node_hcr.1.passed != True and node_hcr.1.severityLevel == "CRITICAL"
+  with_subelements:
+    - "{{ cluster_hc_output.content.result.result.nodes }}"
+    - result
+  loop_control:
+    loop_var: node_hcr
+  ignore_errors: true
+
+- name: Display health-check status
+  debug:
+    msg: "{{ 'health-check is failed.' if failed_health_checks | length != 0 else 'health-check is passed.' }}"
+
+- name: Display cluster health status details if health-check failed
+  fail:
+    msg: >
+      "Cluster - {{ cluster_id }} failed health-check list:
+      {{ failed_health_checks | to_nice_json }}"
+  when: failed_health_checks | length != 0
+  ignore_errors: true

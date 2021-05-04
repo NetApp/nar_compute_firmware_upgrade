@@ -1,0 +1,34 @@
+- name: Create a directory if it does not exist
+  file:
+    path: config
+    state: directory
+    mode: u=rwx,g=rw,o=rw
+
+- name: Checking if a file exists
+  stat:
+    path: config/config.json
+  register: config_data_dict
+
+- name: Create a file if it doesn’t already exist
+  file:
+    path: config/config.json
+    state: touch
+    mode: u=rw,g=r,o=r
+  when: not config_data_dict.stat.exists
+
+# This and next task will use in future for new key-value pair to update in config.json file
+- name: Set key/values in config json file
+  vars:
+    data_dict:
+      token_url: "{{ token_url }}"
+      mnode_bundle_version: "{{ mnode_bundle_version }}"
+      mnode_ip: "{{ mnode_ip }}"
+      client_id: "{{ client_id }}"
+      sf_storage_virt_ip: "{{ sf_storage_virt_ip }}"
+  set_fact:
+    config_data_dict: "{{ data_dict | combine(config_data_dict|default({}))}}"
+
+- name: Write config_data_dict to config json file
+  copy:
+    content: "{{ config_data_dict | to_nice_json }}"
+    dest: config/config.json

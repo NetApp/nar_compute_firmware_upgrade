@@ -1,0 +1,58 @@
+---
+# Validate all prerequisite python libraries for AnsibleModules
+- name: Ensure we have all required python dependencies installed
+  include_tasks: validate_requirements_prereqs.yml
+  args:
+    apply:
+      delegate_to: localhost
+      run_once: True
+      tags:
+        - validate-requirements-prereqs
+
+- name: Hit /about API to collect mgmt bundle version, storage virtual ip and token url
+  include_tasks: collect_mnode_about_response.yml
+
+- name: Verify Admin access
+  args:
+    apply:
+      delegate_to: localhost
+  include_tasks: verify_admin_access_token.yml
+
+- name: Check mgmt bundle version
+  include_tasks: check_mgmt_bundle_version.yml
+
+- name: Prepare config file with given inputs
+  include_tasks: create_config_json.yml
+  args:
+    apply:
+      delegate_to: localhost
+      run_once: True
+      tags:
+        - config-updater
+
+- name: Get Hardware Nodes for cluster upgrade
+  include_tasks: collect_hardware_ids_with_cluster_info.yml
+  when:
+    - cluster_id is defined and cluster_id
+    - vcenter_ip is defined and vcenter_ip
+  tags:
+    - hardware_nodes_collector
+
+- name: Upgrade list of hardware nodes
+  include_tasks: upgrade_hardware_nodes.yml
+  when: hardware_ids | length > 0
+  tags:
+    - upgrade
+
+- name: Running Cluster Health check
+  include_tasks: cluster_health_check.yml
+  when: node_ids is defined and node_ids | length > 0 and cluster_id
+  tags:
+    - cluster_health_check
+
+- name: Display hardware nodes upgrade failure if any
+  fail:
+    msg: "List of hardware Upgrade failed nodes : {{ failed_hardware_ids }}"
+  when:
+    - failed_hardware_ids is defined
+    - failed_hardware_ids | length > 0

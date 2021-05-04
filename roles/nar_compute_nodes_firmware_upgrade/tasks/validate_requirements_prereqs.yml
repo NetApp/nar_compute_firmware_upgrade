@@ -1,0 +1,28 @@
+---
+- name: Ensure the required minimum version of Ansible is being used
+  assert:
+    that:
+      - ansible_version['full'] is version('2.9.0', '>=')
+    fail_msg: >
+      "Error: Please upgrade the controller to a supported version of Ansible, i.e. >= 2.9.0"
+  tags:
+    - always
+
+- name: Ensure the system has the required python libraries
+  python_requirements_info:
+    dependencies:
+      - envparse>=0.2.0
+      - requests-oauthlib>=1.3.0
+      - requests>=2.24.0
+      - python-jose>=3.2.0
+  register: python_dependencies_response
+
+- name: Ensure we fail if any required python libraries are not installed or mismatch the version
+  fail:
+    msg: >
+      Required python libraries are not installed or mismatch the version -
+      Not found python libraries : {{ python_dependencies_response.not_found }} or
+      Mismatched python libraries : {{ python_dependencies_response.mismatched }}
+  when: >
+    (python_dependencies_response.not_found | length > 0) or
+    (python_dependencies_response.mismatched | length > 0)

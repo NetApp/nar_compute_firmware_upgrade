@@ -1,0 +1,51 @@
+---
+
+# Run task monitor service API to get the upgrade status
+- name: Check upgrade status with Task monitoring service
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/task-monitor/1/tasks/{{ taskId }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: task_monitor_response
+  until:
+    - task_monitor_response.content.percentComplete == 100
+    - task_monitor_response.content.state in ["completed", "failed", "canceled", "timedOut"]
+  retries: "{{ retries_limit }}"
+  delay: "{{ interval }}"
+  ignore_errors: true
+
+- name: Display task monitor response
+  debug:
+    msg: "Final response of task monitor for running node upgrade: {{ task_monitor_response.content }}"
+  when: task_monitor_response.content is defined
+  ignore_errors: true
+
+# Run to collect final logs details of node upgrade
+- name: Collect node upgrade log
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "{{ resourceLink }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: upgrade_log_output
+  ignore_errors: true
+
+- name: Display upgrade log
+  debug:
+    msg: "Log details of node upgrade: {{ upgrade_log_output.content }}"
+  when: upgrade_log_output.content is defined
+  ignore_errors: true
+
+- name: "Ensure upgrade is completed successfully or not for  {{ hardware_id }} node"
+  fail:
+    msg: >
+      "Node {{ hardware_id }} upgrade status is {{ task_monitor_response.content.state }}.
+      Please check the upgrade logs."
+  when: task_monitor_response.content.state != "completed"
+
+- debug:
+    msg: "Node {{ hardware_id }} upgrade is {{ task_monitor_response.content.state }}"
+  when: task_monitor_response.content is defined
