@@ -1,0 +1,6 @@
+[all]
+10.10.10.10
+
+[all:vars]
+ansible_user=root
+ansible_ssh_pass=password

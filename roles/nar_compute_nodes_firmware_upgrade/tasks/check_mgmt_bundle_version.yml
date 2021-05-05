@@ -1,0 +1,10 @@
+---
+# Check required minimum version of management services is 2.15 or greater
+- name: Ensure the required minimum version of management services is being used
+  assert:
+    that:
+      - mnode_bundle_version is version('2.15', '>=')
+    fail_msg: >
+      "Error: Please upgrade the management services bundle to support this ansible script, i.e. >= 2.15"
+  tags:
+    - always

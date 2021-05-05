@@ -1,0 +1,52 @@
+---
+- name: Get authenticate access token
+  uri:
+    url: "https://{{ sf_storage_virt_ip }}/auth/connect/token"
+    method: POST
+    return_content: yes
+    status_code: 200, 400
+    validate_certs: "{{ sf_validate_certs | default(True) | bool }}"
+    body_format: form-urlencoded
+    body:
+      grant_type: "{{ grant_type }}"
+      client_id: "{{ client_id }}"
+      username: "{{ username }}"
+      password: "{{ password }}"
+  until: auth_token.status == 200
+  retries: "{{ token_retries }}"
+  delay: "{{ token_intervals }}"
+  register: auth_token
+
+- name: Get jwks token response
+  uri:
+    url: "https://{{ sf_storage_virt_ip }}/auth/.well-known/openid-configuration/jwks"
+    method: GET
+    return_content: yes
+    status_code: 200, 400
+    validate_certs: "{{ sf_validate_certs | default(True) | bool }}"
+    body_format: form-urlencoded
+  until: auth_jwks.status == 200
+  retries: "{{ token_retries }}"
+  delay: "{{ token_intervals }}"
+  register: auth_jwks
+
+- name: Validate access token admin rights
+  nar_decode_access_token:
+    auth_token: "{{ auth_token.json.access_token }}"
+    auth_jwks: "{{ auth_jwks.content }}"
+    audience: "{{ audience }}"
+    algorithms: "{{ algorithms }}"
+    clock_skew_leeway: "{{ clock_skew_leeway }}"
+  register: verification_response
+
+- name: Validate admin rights
+  vars:
+    access_claims: "{{ verification_response.decoded_response }}"
+    decode_status: "{{ 'success' if verification_response.decoded_status is true else 'failed' }}"
+    error_reason: "{{ verification_response.error_reason if 'error_reason' in verification_response else '' }}"
+  debug:
+    msg : "Admin access verification status: {{ decode_status }}.{{ error_reason }}"
+  failed_when: >
+    (decode_status == 'failed') or
+    ('netapp_access' not in access_claims) or
+    ('administrator' not in access_claims.netapp_access)

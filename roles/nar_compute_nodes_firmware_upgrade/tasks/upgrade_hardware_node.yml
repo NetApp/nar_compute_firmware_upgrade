@@ -1,0 +1,52 @@
+---
+# Hardware id list already checked/validated in prev task.
+- name: Ensure we fail if we don't have all prereqs to start node upgrade
+  fail:
+    msg: "ERROR: Please provide all required inputs to start upgrade, i.e. controller_id, package_name, version"
+  when: >
+    (controller_id == "") or
+    (package_name == "") or
+    (version == "")
+
+- name: Run hardware node upgrade API
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/hardware/2/nodes/{{ hardware_id }}/upgrades"
+    method: POST
+    username: "{{ username }}"
+    password: "{{ password }}"
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+    timeout: 180
+    data:
+      config:
+        force: "{{ force_upgrade | default(False) | bool}}"
+        maintenanceMode: "{{ maintenance_mode | default(True) | bool}}"
+      controllerId: "{{ controller_id }}"
+      packageName: "{{ package_name }}"
+      packageVersion: "{{ version }}"
+  register: hardware_upgrade_response
+  until: hardware_upgrade_response.status == 202
+  retries: "{{ upgrade_retries }}"
+  delay: "{{ upgrade_interval }}"
+  ignore_errors: "{{ ignore_upgrade_node_failures }}"
+
+- name: Validate hardware upgrade response and log failures
+  block:
+    - name: Ensure we fail if hardware upgrade response is not valid
+      fail:
+        msg: "Not getting proper response from hardware upgrade API: {{ hardware_upgrade_response }}"
+      when: >
+        (hardware_upgrade_response.content | length == 0) or
+        (hardware_upgrade_response.content.taskId is not defined) or
+        (hardware_upgrade_response.content.resourceLink is not defined)
+
+    - name: Check status of running hardware upgrade with taskId and resourceLink
+      include_tasks: upgrade_status_check.yml
+      vars:
+        taskId: "{{ hardware_upgrade_response.content.taskId }}"
+        resourceLink: "{{ hardware_upgrade_response.content.resourceLink }}"
+
+  rescue:
+    - name: "Gather failed hardware nodes"
+      set_fact:
+        failed_hardware_ids: "{{ failed_hardware_ids + [ hardware_id ] }}"

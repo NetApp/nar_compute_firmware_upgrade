@@ -1,0 +1,63 @@
+---
+# This variable must contain an IP address or a Fully Qualified Domain Name
+# Must be defined by the user
+mnode_ip: 10.10.10.10
+
+# The username for the specified/defined cluster administrator user
+# Must be defined by the user
+username: root
+password: password
+
+# Package details to get binary file
+package_name: ""
+version: ""
+
+# single node upgrade inputs
+controller_id: ""
+hardware_ids: []
+
+# Cluster upgrade inputs
+# Ensure not needed (not even empty) for controller_id and hardware_ids through
+# extended argument (--extra-vars/-e)
+vcenter_ip: ""
+cluster_id: ""
+
+# Auth URl required inputs
+client_id: hci-ui
+
+# Auth token validation required parameters
+grant_type: password
+audience: mnode_api
+clock_skew_leeway: 30
+algorithms: RS256
+auth_jwks: jwks_response_data
+auth_token: {}
+token_retries: 5
+token_intervals: 2
+
+# Upgrade payload options
+maintenance_mode: True
+force_upgrade: False
+
+# Upgrade extra vars inputs
+upgrade_interval: 2
+upgrade_retries: 2
+ignore_upgrade_node_failures: true
+
+# We are retying the upgrade status check task until the upgrade percentComplete = 100 and
+# state becomes ["completed", "failed", "canceled", "timedOut"] any of them.
+# Interval in seconds.
+# Currently, hardware upgrade will take around 60 min, but for the safe side, we are retying around 120 min
+# total time = 120 * 60 = 7200 sec = 120 min = 2 hours
+#
+retries_limit: 120
+interval: 60
+
+# Do we need to verify SSL/TLS Certificates
+# DO NOT change this unless you know what you're doing, you know the source is
+# reputable and/or was told to modify it by NetApp SolidFire support.
+sf_validate_certs: False
+
+# Cluster Health Check extra vars inputs
+cluster_hc_retries: 30
+cluster_hc_intervals: 10

@@ -1,0 +1,7 @@
+---
+- name: Compute Nodes FirmWare Upgrades
+  hosts: all
+  gather_facts: True
+  roles:
+    - role: nar_compute_nodes_firmware_upgrade
+

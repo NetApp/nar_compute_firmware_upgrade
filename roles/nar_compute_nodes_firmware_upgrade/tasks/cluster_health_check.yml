@@ -1,0 +1,19 @@
+---
+- name: Running Cluster health-checks
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/vcenter/1/compute/{{ controller_id }}/health-checks"
+    method: POST
+    verify: "{{ sf_validate_certs | default(False) | bool }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    data:
+      cluster: "{{ cluster_id }}"
+      nodes: "{{ node_ids }}"
+  register: response
+
+- name: Check cluster health status
+  include_tasks: cluster_health_status_check.yml
+  vars:
+    taskId: "{{ response.content.taskId }}"
+    resourceLink: "{{ response.content.resourceLink }}"

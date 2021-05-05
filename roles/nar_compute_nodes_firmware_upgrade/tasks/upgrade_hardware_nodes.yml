@@ -1,0 +1,20 @@
+---
+- name: Ensure hardware ids is in a list format
+  vars:
+    hardware_id_list: "{{ hardware_ids if hardware_ids is iterable and hardware_ids is not string else [] }}"
+  fail:
+    msg: "Invalid Hardware id list"
+  when: hardware_id_list | length == 0
+
+- set_fact:
+    failed_hardware_ids: []
+
+- name: Upgrade hardware nodes
+  vars:
+    hardware_id: "{{ hardwareID }}"
+  include_tasks: upgrade_hardware_node.yml
+  when: hardwareID is defined and hardwareID
+  loop: "{{ hardware_ids }}"
+  loop_control:
+    pause: "{{ upgrade_interval }}"
+    loop_var: hardwareID

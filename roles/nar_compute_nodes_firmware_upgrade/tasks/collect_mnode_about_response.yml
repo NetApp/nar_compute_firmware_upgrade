@@ -1,0 +1,21 @@
+---
+# Hit mNode /about api to get mgmt service bundle version, storage virtual ip and token url
+#
+# Here we are sending `auth_skip=True` so no need to send username and password details while hitting API
+#
+- name: Run mnode about API
+  delegate_to: localhost
+  nar_hci_mgmt_api:
+    url: "https://{{ mnode_ip }}/mnode/about"
+    auth_skip: true
+    verify: "{{ sf_validate_certs | default(False) | bool}}"
+  register: about_response
+  until: about_response.status == 200
+  tags:
+    - always
+
+- set_fact:
+    token_url: "{{ about_response.content.token_url }}"
+    mnode_bundle_version: "{{ about_response.content.mnode_bundle_version }}"
+    sf_storage_virt_ip: "{{ about_response.content.token_url | regex_search('https://(.*?)/', '\\1') | first }}"
+  when: about_response.content | length > 0
