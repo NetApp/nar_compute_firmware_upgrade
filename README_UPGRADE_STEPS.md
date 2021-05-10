@@ -26,7 +26,7 @@ For H-series compute nodes, NetApp provides the **nar_compute_nodes_firmware_upg
 - *Attached media*: Disconnect any physical USB or ISO before starting a compute node upgrade.
 - *KVM ESXi console*: Close all open Serial-Over-LAN (SOL) sessions and active KVM sessions in the BMC UI before starting a compute node upgrade.
 - *Witness Node requirements*: In two- and three-node storage clusters, one [Witness Node](https://docs.netapp.com/us-en/hci/docs/concept_hci_nodes.html#witness-nodes) should be running in the NetApp HCI installation at all times.
-- *Hardware tag requirements*: You have [added the hardware tag](https://docs.netapp.com/us-en/hci/docs/task_mnode_add_assets.html) for the computes nodes to the base asset configuration.
+- *Hardware tag requirements*: You have [added the hardware tag](https://docs.netapp.com/us-en/hci/docs/task_mnode_add_assets.html) for the compute nodes to the base asset configuration.
 
 ## Steps
 
@@ -35,38 +35,38 @@ For H-series compute nodes, NetApp provides the **nar_compute_nodes_firmware_upg
 2. Upload the compute firmware upgrade package to the management node. You can do this by using the NetApp Hybrid Cloud Control UI or REST APIs.
 3. **(If your management node has external connectivity)** Obtain the `"packageName"` and `"packageVersion"`, which you will need in a later step:
    1. Verify the repository connection:
-      a. Open the package service REST API UI on the management node: `https://[management node IP]/package-repository/1/`
-      b. Select **Authorize** and enter the cluster user name and password, client ID (`mnode-client`).
-      c. Select **Authorize** to begin a session.
-      d. Close the authorization window.
-      e. From the REST API UI, select **GET ​/packages​/remote-repository​/connection**.
-      f. Select **Try it out**.
-      g. Select **Execute**.
+      1. Open the package service REST API UI on the management node: `https://[management node IP]/package-repository/1/`
+      2. Select **Authorize** and enter the cluster user name and password, client ID (`mnode-client`).
+      3. Select **Authorize** to begin a session.
+      4. Close the authorization window.
+      5. From the REST API UI, select **GET ​/packages​/remote-repository​/connection**.
+      6. Select **Try it out**.
+      7. Select **Execute**.
      If code 200 is returned, go to the next step. If there is no connection to the remote repository, establish the connection or use the steps for the dark site option.
    2. Find the upgrade package ID:
-    a. From the REST API UI, select **GET /packages**.
-    b. Select **Try it out**.
-    c. Select **Execute**.
-    d. From the response, copy and save the upgrade package name (`"packageName"`) and package version (`"packageVersion"`) for use in a later step.
+      1. From the REST API UI, select **GET /packages**.
+      2. Select **Try it out**.
+      3. Select **Execute**.
+      4. From the response, copy and save the upgrade package name (`"packageName"`) and package version (`"packageVersion"`) for use in a later step.
 4. **(If your management node is within a dark site)** Obtain the `"packageName"` and `"packageVersion"`, which you will need in a later step.
    1. Download the latest compute node firmware image from the [NetApp Support Site](https://mysupport.netapp.com/site/products/all/details/netapp-hci/downloads-tab/download/62542/Compute_Firmware_Bundle) to a device that is accessible to the management node.
    **Note**: For dark site upgrades, you can reduce upload time if the upgrade package and the management node are both local.
    2. Upload the compute firmware upgrade package to the management node:
-     a. Open the management node REST API UI on the management node: `https://[management node IP]/package-repository/1/`
-     b. Select **Authorize** and enter the cluster user name and password, the client ID (`mnode-client`).
-     c. Select **Authorize** to begin a session.
-     d. Close the authorization window.
-     e. From the REST API UI, select **POST /packages**.
-     f. Select **Try it out**.
-     g. Select **Browse** and select the upgrade package.
-     h. Select **Execute** to initiate the upload.
-     i. From the response, copy and save the package ID (`"id"`) for use in a later step.
+     1. Open the management node REST API UI on the management node: `https://[management node IP]/package-repository/1/`
+     2. Select **Authorize** and enter the cluster user name and password, the client ID (`mnode-client`).
+     3. Select **Authorize** to begin a session.
+     4. Close the authorization window.
+     5. From the REST API UI, select **POST /packages**.
+     6. Select **Try it out**.
+     7. Select **Browse** and select the upgrade package.
+     8. Select **Execute** to initiate the upload.
+     9. From the response, copy and save the package ID (`"id"`) for use in a later step.
    3. Verify the status of the upload.
-     a. From the REST API UI, select **GET​ /packages​/{id}​/status**.
-     b. Select **Try it out**.
-     c. Enter the package ID you copied in the previous step in **id**.
-     d. Select **Execute** to initiate the status request. The response indicates `state` as `SUCCESS` when complete.
-     e. From the response, copy and save the upgrade package name (`"name"`) and package version (`"version"`) for use in a later step.
+     1. From the REST API UI, select **GET​ /packages​/{id}​/status**.
+     2. Select **Try it out**.
+     3. Enter the package ID you copied in the previous step in **id**.
+     4. Select **Execute** to initiate the status request. The response indicates `state` as `SUCCESS` when complete.
+     5. From the response, copy and save the upgrade package name (`"name"`) and package version (`"version"`) for use in a later step.
 5. Locate the compute controller ID and hardware ID for the node you intend to upgrade:
    1. Access the REST API UI for management services by entering the management node IP address followed by `/mnode/1`: `https://[management node IP]/mnode/1/`
    2. Select **Authorize** and enter the cluster user name and password, and the client ID.
@@ -142,10 +142,10 @@ For H-series compute nodes, NetApp provides the **nar_compute_nodes_firmware_upg
        "vmotion_rate": 3
      },
 ```
-6. Download the [nar_compute_nodes_firmware_upgrades](https://github.com/NetApp/ansible) role provided by NetApp to your local machine.
+7. Download the [nar_compute_nodes_firmware_upgrades](https://github.com/NetApp/ansible) role provided by NetApp to your local machine.
 **Note**: You can also manually install the role by copying it from the [NetApp GitHub repository](https://github.com/NetApp/ansible) and placing the role in the `~/.ansible/roles` directory.
-7. Specify the SSH credentials and environment details in the [inventory file](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html), which is located in `etc/ansible/hosts`.
-8. Specify the following variables in the `group_vars/all.yml` file. This is where you will enter the values that you copied in the previous steps.
+8. Specify the SSH credentials and environment details in the [inventory file](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html), which is located in `etc/ansible/hosts`.
+9. Specify the following variables in the `group_vars/all.yml` file. This is where you will enter the values that you copied in the previous steps.
 * `mnode_ip`
 * `username`
 * `password`
@@ -155,14 +155,14 @@ For H-series compute nodes, NetApp provides the **nar_compute_nodes_firmware_upg
 * `hardware_id` (required only for single-node upgrade)
 * `cluster_id` (required only for cluster-level upgrade)
 * `vcenter_ip` (required only for cluster-level upgrade)
-9. Update the `hosts` inventory file with the server/inventory details, such as IP addresses, username, and password.
+10. Update the `hosts` inventory file with the server/inventory details, such as IP addresses, username, and password.
 **Note**: You should define the hosts in the inventory file by using IP addresses (and not fully qualified domain names [FQDNs]). The upgrade will fail if you define the hosts by using FQDNs.
-10. Create the playbook to use for upgrades. If you already have a playbook and want to use that, ensure that you specify the **nar_compute_nodes_firmware_upgrades** role in this playbook.
-11. Run the playbook:
+11. Create the playbook to use for upgrades. If you already have a playbook and want to use that, ensure that you specify the **nar_compute_nodes_firmware_upgrades** role in this playbook.
+12. Run the playbook:
 ```
 ansible-playbook -i hosts site.yml -e 'username=username password=password client-id=client-id audience=mnode_api'
 ```
-12. After the upgrade is complete, verify the BMC, BIOS, and NIC versions:
+13. After the upgrade is complete, verify the BMC, BIOS, and NIC versions:
    1. Open a web browser and browse to the IP address of the management node.
    2.	Log in to NetApp Hybrid Cloud Control by providing the storage cluster administrator credentials.
    3.	In the top bar, select **Upgrade**, then select **COMPUTE FIRMWARE**, then expand the appropriate   cluster and select the latest package to view the current version.
