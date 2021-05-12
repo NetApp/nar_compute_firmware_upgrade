@@ -162,7 +162,7 @@ For H-series compute nodes, NetApp provides the **nar_compute_nodes_firmware_upg
 ```
 ansible-playbook -i hosts site.yml -e 'username=username password=password client-id=client-id audience=mnode_api'
 ```
-13. After the upgrade is complete, verify the BMC, BIOS, and NIC versions:
-   1. Open a web browser and browse to the IP address of the management node.
-   2.	Log in to NetApp Hybrid Cloud Control by providing the storage cluster administrator credentials.
-   3.	In the top bar, select **Upgrade**, then select **COMPUTE FIRMWARE**, then expand the appropriate   cluster and select the latest package to view the current version.
+13. After the upgrade is complete, verify the BMC, BIOS, and NIC versions.
+ 1. Open a web browser and browse to the IP address of the management node.
+ 2.	Log in to NetApp Hybrid Cloud Control by providing the storage cluster administrator credentials.
+ 3.	In the top bar, select **Upgrade**, then select **COMPUTE FIRMWARE**, then expand the appropriate cluster and select the latest package to view the current version.
