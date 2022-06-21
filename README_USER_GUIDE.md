@@ -120,7 +120,7 @@ Example of a successful response:
 ## Caveats
 
 - If there is an ongoing node upgrade, the node upgrade fails with 409. However, this should not abort the playbook.
-- Attempting to upgrade compute nodes already running the firmware versions included in the package (i.e compute firmware bundle) will result in the compute nodes going through the upgrade stages and subsequently report a successful upgrades for the playbook. The compute nodes will be placed into maintenance mode and rebooted to apply compute firmware bundle, even though the actual component-level firmware upgrades stage will be skipped.
+- Attempting to upgrade compute nodes already running the firmware versions included in the package (i.e compute firmware bundle) will result in the compute nodes going through the upgrade stages and subsequently report a successful upgrades for the playbook. The compute nodes will be placed into maintenance mode and rebooted to apply compute firmware bundle.
 - In certain setups, reducing the health check retries causes flakiness.
 - If facing squid proxy error or if the mnode environment is unreachable via playbook, run the following commands to unset proxies:
     ```
